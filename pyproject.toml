@@ -27,3 +27,6 @@ dev = [
     "black (>=25.9.0,<26.0.0)",
     "pre-commit (>=4.3.0,<5.0.0)"
 ]
+
+[project.scripts]
+rag = "src.rag.cli.main:cli"
