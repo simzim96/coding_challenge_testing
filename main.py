@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 
+from src.rag.core.agent import RetrievalToolAgent
 from src.rag.core.answer import ContextDocument, OpenAIAnswerGenerator
 from src.rag.core.chunker import split_text_into_chunks
 from src.rag.core.embedder import SimpleTFIDFEmbedder
@@ -38,11 +39,17 @@ def main() -> None:
         action="store_true",
         help="If set, and OPENAI_API_KEY is available, generate an answer using OpenAI.",
     )
+    parser.add_argument(
+        "--agent",
+        action="store_true",
+        help="Use OpenAI tool-calling agent with retrieval tool (multi-turn).",
+    )
     args = parser.parse_args()
 
     console = Console()
     console.print(Panel.fit(f"Indexing file: [bold]{args.file}[/bold]"))
     retriever = build_retriever(args.file)
+    agent = RetrievalToolAgent(retriever) if args.agent else None
 
     console.print("Type your question. Use /exit to quit.")
     while True:
@@ -57,6 +64,15 @@ def main() -> None:
             console.print("Goodbye!")
             break
 
+        if agent is not None:
+            try:
+                answer = agent.ask(query)
+                console.print(Panel.fit(answer, title="Agent"))
+            except Exception as exc:  # noqa: BLE001
+                console.print(f"[yellow]Agent unavailable or failed:[/yellow] {exc}")
+            continue
+
+        # Default RAG context display
         docs = retriever.retrieve(query, k=3)
         if not docs:
             console.print("[yellow]No relevant context found.[/yellow]")
