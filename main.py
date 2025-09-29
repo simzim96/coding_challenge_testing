@@ -2,6 +2,7 @@
 import argparse
 from pathlib import Path
 
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 
@@ -23,6 +24,8 @@ def build_retriever(file_path: Path) -> Retriever:
 
 
 def main() -> None:
+    # Load environment variables from a local .env file if present
+    load_dotenv()
     parser = argparse.ArgumentParser(description="Chat with a local text file")
     parser.add_argument(
         "--file",
