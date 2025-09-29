@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -10,12 +11,17 @@ def test_run_chat_script(tmp_path: Path) -> None:
     )
 
     cmd = [sys.executable, "scripts/chat.py", "--file", str(sample)]
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join(
+        filter(None, [env.get("PYTHONPATH", ""), str(Path.cwd())])
+    )
     proc = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        env=env,
     )
     try:
         out, _ = proc.communicate(input="what is this?\n/exit\n", timeout=15)
