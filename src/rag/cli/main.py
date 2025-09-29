@@ -1,10 +1,10 @@
-import sys
 from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.panel import Panel
 
+from src.rag.core.answer import ContextDocument, OpenAIAnswerGenerator
 from src.rag.core.chunker import split_text_into_chunks
 from src.rag.core.embedder import SimpleTFIDFEmbedder
 from src.rag.core.loader import TextLoader
@@ -37,14 +37,17 @@ def cli() -> None:
     show_default=True,
     help="Path to the input text file to chat with.",
 )
-def chat(file_path: Path) -> None:
+@click.option(
+    "--answer",
+    "use_llm",
+    is_flag=True,
+    default=False,
+    help="If set, and OPENAI_API_KEY is available, generate an answer using OpenAI.",
+)
+def chat(file_path: Path, use_llm: bool) -> None:
     """Start an interactive chat with the provided text file."""
     console.print(Panel.fit(f"Indexing file: [bold]{file_path}[/bold]"))
-    try:
-        retriever = build_retriever_from_file(file_path)
-    except Exception as exc:  # noqa: BLE001
-        console.print(f"[red]Failed to prepare retriever:[/red] {exc}")
-        sys.exit(1)
+    retriever = build_retriever_from_file(file_path)
 
     console.print("Type your question. Use /exit to quit.")
     while True:
@@ -68,6 +71,17 @@ def chat(file_path: Path) -> None:
         console.rule("Top Context")
         console.print(context)
         console.rule()
+
+        if use_llm:
+            try:
+                generator = OpenAIAnswerGenerator()
+                answer = generator.answer(
+                    query,
+                    [ContextDocument(content=d.content) for d in docs],
+                )
+                console.print(Panel.fit(answer, title="Answer"))
+            except Exception as exc:  # noqa: BLE001
+                console.print(f"[yellow]LLM unavailable or failed:[/yellow] {exc}")
 
 
 if __name__ == "__main__":
